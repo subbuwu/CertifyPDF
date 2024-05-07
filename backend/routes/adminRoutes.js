@@ -1,48 +1,56 @@
 import { Router } from "express";
 import { PDFDocument, rgb } from "pdf-lib";
 import fs from "fs";
-import { google } from "googleapis";
-import bodyParser from "body-parser";
-const credentials = {"web":{"client_id":"170723303875-r24dvnnk53gjsnbev6hrivv7pg2eko06.apps.googleusercontent.com","project_id":"tough-cider-422517-d0","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs","client_secret":"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"}}
+import { Certificate } from "../db/Schemas.js"
 
 const router = Router();
 
-router.use(bodyParser.json());
+const createFile = async (fileName, mimeType, content,token,email) => {
 
-const { client_secret, client_id, redirect_uris } = credentials.web;
-const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
+    try {
+      const fileMetadata = {
+        name: fileName,
+        mimeType: mimeType
+      };
+  
+      const formData = new FormData();
+      formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+      formData.append('file', new Blob([content], { type: mimeType }));
+  
+      const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+  
+      if (response.ok) {
+        const file = await response.json();
 
-// Scope required for Google Drive API
-const SCOPES = ['https://www.googleapis.com/auth/drive'];
+        const driveLinkId = `https://drive.google.com/file/d/${file.id}/view`
 
-async function uploadFileToDrive(auth, file) {
-    const drive = google.drive({ version: 'v3', auth });
+        const newCertificate = new Certificate({
+          email : email,
+          driveFileId : driveLinkId
+        })
 
-    const fileMetadata = {
-      name: 'edited_file.pdf', // Name for the uploaded file
-    };
-    
-    const media = {
-      mimeType: 'application/pdf',
-      body: fs.createReadStream(file.path),
-    };
-    const res = await drive.files.create({
-      resource: fileMetadata,
-      media: media,
-      fields: 'id',
-    });
-    return res.data.id;
-  }
+        await newCertificate.save();
 
+        console.log('File uploaded:', file);
+      } else {
+        throw new Error('Failed to upload file');
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  };
+  
 
 router.post("/upload", async (req, res) => {
+    const { name, completionDate, courseName, token , pdfFileName, email} = req.body;
+    const completion = `For successfully completing the ${courseName} course on ${completionDate}.`
     
-    const { name, completionDate, courseName,token } = req.body;
-
-    oAuth2Client.setCredentials(token);
-
-    const completion = `For successfully completing the ${courseName} course on ${completionDate}.`;
-
     try {
         // Load the existing PDF document
         const existingPdfBytes = fs.readFileSync("/Users/subbu/Desktop/Projects/CertifyPDF/backend/docs/TDC.pdf");
@@ -61,33 +69,36 @@ router.post("/upload", async (req, res) => {
 
         // Fill in form fields with provided data
         page.drawText(name, {
-            x: 330,
-            y: startY + 2 * lineHeight,
+            x: 260,
+            y: startY + 2 * lineHeight, // Adjust based on the line number and spacing
             size: 42,
-            color: rgb(255 / 255, 165 / 255, 0),
-            font: await pdfDoc.embedFont("Helvetica-Bold"),
+            color: rgb(255 / 255, 165 / 255, 0) ,
+            font: await pdfDoc.embedFont('Helvetica-Bold'),
         });
         page.drawText(completion, {
             x: 130,
-            y: startY,
+            y: startY, // Adjust based on the line number and spacing
             size: 16,
-            color: rgb(0, 0, 0),
+            color: rgb(0, 0, 0)
         });
 
         // Save the modified PDF document to a new file
         const modifiedPdfBytes = await pdfDoc.save();
-        const filePath = "to_be_saved_to_google_drive_linktodatabase.pdf";
-        fs.writeFileSync(filePath, modifiedPdfBytes);
+        // fs.writeFileSync(`${pdfFileName}+.pdf`, modifiedPdfBytes);
+        
+        createFile(`${pdfFileName}.pdf`, "application/pdf", modifiedPdfBytes,token,email);
 
-        // Upload the file to Google Drive
-        const fileId = await uploadFileToDrive(oAuth2Client, filePath);
-
-        // Now you can store the fileId in your database or respond with it
-        res.json({ message: "PDF saved to Google Drive successfully", fileId });
+        // Respond with a success message or send the modified PDF file
+        res.json({ message: "PDF saved successfully" });
     } catch (error) {
         console.error("Error filling PDF form:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+router.get("/getLinks",async (req,res) => {
+  const certificates = await Certificate.find();
+  res.send(certificates)
+})
 
 export default router;

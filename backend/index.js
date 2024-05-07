@@ -1,6 +1,8 @@
 import express from "express";
+import cors from "cors"
 import { initDB } from "./db/initDB.js";
 import dotenv from 'dotenv';
+import bodyParser from "body-parser";
 import adminRoutes from "./routes/adminRoutes.js"
 
 dotenv.config();
@@ -10,7 +12,9 @@ const PORT = 8080
 
 // Middleware for parsing JSON and urlencoded bodies
 app.use(express.json());
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 // Initialize the database
 initDB();
