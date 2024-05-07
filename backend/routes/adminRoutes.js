@@ -53,7 +53,7 @@ router.post("/upload", async (req, res) => {
     
     try {
         // Load the existing PDF document
-        const existingPdfBytes = fs.readFileSync("/Users/subbu/Desktop/Projects/CertifyPDF/backend/docs/TDC.pdf");
+        const existingPdfBytes = fs.readFileSync("../docs/TDC.pdf");
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
 
         // Get the first page of the document
