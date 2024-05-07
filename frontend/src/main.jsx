@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { GOOGLE_CLIENT_ID } from "../constants/googleAuth.js"
+import { GOOGLE_CLIENT_ID } from "../constants/credentials.js"
 
 // USE YOUR OWN GOOGLE CLIENT ID HERE INSTEAD OF GOOGLE_CLIENT_ID
 

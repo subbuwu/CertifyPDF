@@ -1,25 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useGoogleLogin, googleLogout } from "@react-oauth/google";
+import { useGoogleLogin, googleLogout } from "@react-oauth/google"; 
+import { REACT_API_URL } from "../constants/credentials";
 import axios from "axios";
-
 
 function App() {
   const [isReload,setIsReload] = useState(0);
-  const getCertificates = async () => {
-    try {
-      // Fetch certificates from the API
-      const response = await axios.get("http://localhost:8080/api/admin/getLinks");
-      // Extract data from response and update state
-      setCertificates(response.data);
-    } catch (error) {
-      console.error('Error fetching certificates:', error);
-    }
-  };
+  
   useEffect(() => {
     const getCertificates = async () => {
       try {
         // Fetch certificates from the API
-        const response = await axios.get("http://localhost:8080/api/admin/getLinks");
+        const response = await axios.get(`${REACT_API_URL}/api/admin/getLinks`);
         // Extract data from response and update state
         setCertificates(response.data);
       } catch (error) {
@@ -58,7 +49,7 @@ function App() {
       // const { name, completionDate, courseName, token , pdfFileName, email} = req.body;
       try {
           // Make a POST request to submit the form data
-          const response = await fetch('http://localhost:8080/api/admin/upload', {
+          const response = await fetch(`${REACT_API_URL}/api/admin/upload`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -99,9 +90,6 @@ function App() {
     googleLogout();
     setProfile(null);
   };
-
-  //         <button className="btn" onClick={() => login()}>Sign in with Google 🚀 </button>
-
 
   return isUploadSet ? (
     <div>
