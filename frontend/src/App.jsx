@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useGoogleLogin, googleLogout } from "@react-oauth/google"; 
-import { REACT_API_URL } from "../constants/credentials";
 import axios from "axios";
 
 function App() {
@@ -10,7 +9,7 @@ function App() {
     const getCertificates = async () => {
       try {
         // Fetch certificates from the API
-        const response = await axios.get(`${REACT_API_URL}/api/admin/getLinks`);
+        const response = await axios.get(`${process.env.REACT_API_URL}/api/admin/getLinks`);
         // Extract data from response and update state
         setCertificates(response.data);
       } catch (error) {
@@ -49,7 +48,7 @@ function App() {
       // const { name, completionDate, courseName, token , pdfFileName, email} = req.body;
       try {
           // Make a POST request to submit the form data
-          const response = await fetch(`${REACT_API_URL}/api/admin/upload`, {
+          const response = await fetch(`${process.env.REACT_API_URL}/api/admin/upload`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
