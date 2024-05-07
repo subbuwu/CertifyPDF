@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { PDFDocument, rgb } from "pdf-lib";
-import fs from "fs";
+import axios from "axios"
 import { Certificate } from "../db/Schemas.js"
 
 const router = Router();
@@ -47,49 +47,58 @@ const createFile = async (fileName, mimeType, content,token,email) => {
   };
   
 
-router.post("/upload", async (req, res) => {
+  router.post("/upload", async (req, res) => {
     const { name, completionDate, courseName, token , pdfFileName, email} = req.body;
     const completion = `For successfully completing the ${courseName} course on ${completionDate}.`
-    
+
+    async function getPdfTemplate() {
+      try {
+        const pdfUrl = 'https://drive.google.com/uc?export=download&id=1YlGzh5zRDFDLVJ9WpIWMTcIfYSpeEheI';
+
+        const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
+
+        if (!response.data) {
+          throw new Error('Failed to fetch PDF template');
+        }
+
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching PDF template:', error);
+        throw error;
+      }
+    }
+
     try {
-        // Load the existing PDF document
-        const existingPdfBytes = fs.readFileSync("../docs/TDC.pdf");
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+      const pdfBytes = await getPdfTemplate();
+      const pdfDoc = await PDFDocument.load(pdfBytes);
 
-        // Get the first page of the document
-        const page = pdfDoc.getPages()[0];
+      const page = pdfDoc.getPages()[0];
 
-        const pageHeight = page.getSize().height;
-        const lineHeight = 30; // Adjust as needed for spacing between lines
+      const pageHeight = page.getSize().height;
+      const lineHeight = 30;
+      const totalLines = 3;
+      const totalHeight = totalLines * lineHeight;
+      const startY = (pageHeight - totalHeight) / 1.6;
 
-        // Calculate vertical position for each line of text
-        const totalLines = 3; // Adjust based on the number of lines of text
-        const totalHeight = totalLines * lineHeight;
-        const startY = (pageHeight - totalHeight) / 1.6;
+      page.drawText(name, {
+          x: 260,
+          y: startY + 2 * lineHeight,
+          size: 42,
+          color: rgb(255 / 255, 165 / 255, 0) ,
+          font: await pdfDoc.embedFont('Helvetica-Bold'),
+      });
+      page.drawText(completion, {
+          x: 130,
+          y: startY,
+          size: 16,
+          color: rgb(0, 0, 0)
+      });
 
-        // Fill in form fields with provided data
-        page.drawText(name, {
-            x: 260,
-            y: startY + 2 * lineHeight, // Adjust based on the line number and spacing
-            size: 42,
-            color: rgb(255 / 255, 165 / 255, 0) ,
-            font: await pdfDoc.embedFont('Helvetica-Bold'),
-        });
-        page.drawText(completion, {
-            x: 130,
-            y: startY, // Adjust based on the line number and spacing
-            size: 16,
-            color: rgb(0, 0, 0)
-        });
+      const modifiedPdfBytes = await pdfDoc.save();
+      
+      createFile(`${pdfFileName}.pdf`, "application/pdf", modifiedPdfBytes, token, email);
 
-        // Save the modified PDF document to a new file
-        const modifiedPdfBytes = await pdfDoc.save();
-        // fs.writeFileSync(`${pdfFileName}+.pdf`, modifiedPdfBytes);
-        
-        createFile(`${pdfFileName}.pdf`, "application/pdf", modifiedPdfBytes,token,email);
-
-        // Respond with a success message or send the modified PDF file
-        res.json({ message: "PDF saved successfully" });
+      res.json({ message: "PDF saved successfully" });
     } catch (error) {
         console.error("Error filling PDF form:", error);
         res.status(500).json({ error: "Internal Server Error" });
