@@ -1,4 +1,6 @@
 # Certify PDF 📜✨  (STILL EVOLVING :>)
+## Tech Used - React , Express , MongoDB , Google APIs , TailwindCSS
+
 
 Certify PDF is your go-to tool for creating awesome certificates (pdf) effortlessly! 
 
