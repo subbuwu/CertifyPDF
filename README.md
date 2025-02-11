@@ -1,4 +1,4 @@
-# Certify PDF 📜✨  (STILL EVOLVING :>)
+# Certify PDF 
 ## Tech Used - React , Express , MongoDB , Google APIs , TailwindCSS
 
 
